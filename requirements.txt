@@ -1,24 +1,4 @@
-# Core UI & App Framework
 streamlit>=1.30.0
-
-# Data Handling
 pandas>=2.0.0
 numpy>=1.24.0
-
-# Timezone & Date Utilities
 pytz>=2023.3
-
-# Optional: Live Data Fetching
-requests>=2.31.0
-
-# Optional: Technical Indicators (for signal engines)
-ta>=0.10.2
-yfinance>=0.2.33
-
-# Optional: Plotting (if you add charts)
-matplotlib>=3.8.0
-plotly>=5.18.0
-
-# Optional: Backend Utilities (if Flask or threading is used later)
-flask>=2.3.3
-
