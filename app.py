@@ -1,29 +1,58 @@
 import streamlit as st
-from utils import log_trade, get_ist_now, format_ist
+import datetime
+import pytz
+from utils import (
+    fetch_live_ohlc,
+    signal_engine,
+    auto_trade_executor,
+    monthly_pnl_summary,
+    daily_pnl_summary,
+    reasoning_panel
+)
 
-st.set_page_config(page_title="BankNIFTY/NIFTY Paper Trading", layout="wide")
+IST = pytz.timezone("Asia/Kolkata")
+now = datetime.datetime.now(IST)
+market_open = datetime.time(9, 15)
+market_close = datetime.time(15, 30)
+is_weekday = now.weekday() < 5
+is_market_hours = market_open <= now.time() <= market_close
 
-st.title("📊 Dual-Symbol Paper Trading Dashboard")
-st.caption(f"Live IST Time: {format_ist(get_ist_now())}")
+st.set_page_config(page_title="Auto Paper Trading — NIFTY & BANKNIFTY", layout="wide")
+st.title("📊 Auto Paper Trading — NIFTY & BANKNIFTY")
+st.caption(f"🕒 {now.strftime('%A %H:%M:%S')} IST")
 
-# --- Trade Input Panel ---
-st.sidebar.header("Trade Input")
-symbol = st.sidebar.selectbox("Symbol", ["NIFTY", "BANKNIFTY"])
-action = st.sidebar.selectbox("Action", ["Buy", "Sell"])
-price = st.sidebar.number_input("Price", min_value=0.0, format="%.2f")
-quantity = st.sidebar.number_input("Quantity", min_value=1, step=1)
-pnl = st.sidebar.number_input("PnL", format="%.2f")
+paper_trading = st.toggle("🧪 Enable Paper Trading")
 
-if st.sidebar.button("Log Trade"):
-    log_trade(symbol, action, price, quantity, pnl)
-    st.sidebar.success("Trade logged successfully!")
+if is_weekday and is_market_hours and paper_trading:
+    st.success("✅ Paper trading active: Market is open and toggle is ON.")
+    results = {}
+    for symbol in ["NIFTY", "BANKNIFTY"]:
+        df = fetch_live_ohlc(symbol)
+        df = signal_engine(df)
+        paired_df = auto_trade_executor(df, symbol=symbol)
+        results[symbol] = {"signals": df, "trades": paired_df}
 
-# --- Trade Log Viewer ---
-st.subheader("📁 Trade Log")
-try:
-    import pandas as pd
-    df = pd.read_csv("trade_log.csv")
-    st.dataframe(df)
-    st.download_button("Download CSV", df.to_csv(index=False), "trade_log.csv", "text/csv")
-except FileNotFoundError:
-    st.warning("No trades logged yet.")
+    for symbol in ["NIFTY", "BANKNIFTY"]:
+        st.header(f"📊 {symbol} Panel")
+        st.subheader("📈 Signal Table")
+        st.dataframe(results[symbol]["signals"].tail(20), use_container_width=True)
+
+        st.subheader("📘 Trade Log")
+        st.dataframe(results[symbol]["trades"], use_container_width=True)
+        st.download_button(f"Download {symbol} Trade Log", results[symbol]["trades"].to_csv(index=False).encode("utf-8"), f"{symbol}_trade_log.csv", "text/csv")
+
+        st.subheader("📆 Monthly PnL (Last 12 Months)")
+        monthly_df = monthly_pnl_summary(results[symbol]["trades"])
+        st.dataframe(monthly_df, use_container_width=True)
+        st.download_button(f"Download {symbol} Monthly PnL", monthly_df.to_csv(index=False).encode("utf-8"), f"{symbol}_monthly_pnl.csv", "text/csv")
+        st.line_chart(monthly_df.set_index("Month")["Net_PnL"])
+
+        st.subheader("📅 Daily PnL (Last 30 Days)")
+        daily_df = daily_pnl_summary(results[symbol]["trades"])
+        st.dataframe(daily_df, use_container_width=True)
+        st.download_button(f"Download {symbol} Daily PnL", daily_df.to_csv(index=False).encode("utf-8"), f"{symbol}_daily_pnl.csv", "text/csv")
+
+    st.subheader("🧠 Reasoning Panel")
+    st.json(reasoning_panel(results["NIFTY"]["signals"]))
+else:
+    st.warning("⛔ Trades paused: Either market is closed or toggle is OFF.")
