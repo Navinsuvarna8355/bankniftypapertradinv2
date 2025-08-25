@@ -10,6 +10,7 @@ from utils import (
     reasoning_panel
 )
 
+# --- Timezone Setup ---
 IST = pytz.timezone("Asia/Kolkata")
 now = datetime.datetime.now(IST)
 market_open = datetime.time(9, 15)
@@ -17,6 +18,7 @@ market_close = datetime.time(15, 30)
 is_weekday = now.weekday() < 5
 is_market_hours = market_open <= now.time() <= market_close
 
+# --- UI Setup ---
 st.set_page_config(page_title="Auto Paper Trading — NIFTY & BANKNIFTY", layout="wide")
 st.title("📊 Auto Paper Trading — NIFTY & BANKNIFTY")
 st.caption(f"🕒 {now.strftime('%A %H:%M:%S')} IST")
