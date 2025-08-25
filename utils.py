@@ -1,9 +1,6 @@
 import pandas as pd
 import numpy as np
 import datetime
-import pytz
-
-IST = pytz.timezone("Asia/Kolkata")
 
 def fetch_live_ohlc(symbol):
     rng = pd.date_range(end=datetime.datetime.now(), periods=100, freq="5min")
