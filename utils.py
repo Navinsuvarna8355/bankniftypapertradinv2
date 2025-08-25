@@ -5,12 +5,12 @@ import pytz
 import csv
 import os
 
-def get_ist_timestamp():
-    try:
-        ist = pytz.timezone('Asia/Kolkata')
-        return datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')
-    except Exception:
-        return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')  # Fallback to UTC
+def get_ist_now():
+    ist = pytz.timezone("Asia/Kolkata")
+    return datetime.now(ist)
+
+def format_ist(dt):
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 def calculate_pnl(entry, exit, lot_size):
     return round((exit - entry) * lot_size, 2)
@@ -20,9 +20,11 @@ def calculate_duration(entry_time, exit_time):
     return str(duration)
 
 def log_trade(symbol, signal, entry, exit, lot_size, timeframe, reason, entry_time=None, exit_time=None, file_path='trade_log.csv'):
-    timestamp = get_ist_timestamp()
+    entry_time = entry_time or get_ist_now()
+    exit_time = exit_time or (entry_time + timedelta(minutes=5))
+    timestamp = format_ist(entry_time)
     pnl = calculate_pnl(entry, exit, lot_size)
-    duration = calculate_duration(entry_time, exit_time) if entry_time and exit_time else 'NA'
+    duration = calculate_duration(entry_time, exit_time)
 
     trade_data = {
         'Symbol': symbol,
@@ -45,4 +47,3 @@ def log_trade(symbol, signal, entry, exit, lot_size, timeframe, reason, entry_ti
         writer.writerow(trade_data)
 
     return trade_data
-
